@@ -1,6 +1,6 @@
-abstract sig Quality{}
-sig MODIFIED extends Quality{}
-sig NONMODIFIED extends Quality{}
+abstract sig Bool{}
+sig True extends Bool{}
+sig False extends Bool{}
 
 sig Username{}
 
@@ -34,16 +34,20 @@ sig DigitalCertificateX509{
 
 sig ViolationType{}
 
-sig LicensePlate{}
+sig LicensePlate{
+    modified : one Bool
+}
 
 sig Position{}
 
 sig Note{
     length : one Int
+}{
+    length =< 140 && length > 0
 }
 
 sig Image {
-    status : one Int
+    modified : one Bool
 }
 
 sig Date{ 
@@ -75,7 +79,7 @@ abstract sig User {
     surname : one Surname,
     autheticatorID : one AuthenticatorID,
     authentication : one Authentication,
-    reportsMade : some Violation
+    reportsMade : set Violation
 }
 
 sig NormalUser extends User {
@@ -98,14 +102,15 @@ sig Violation {
     violationType : some ViolationType,
     image : one Image,
     licensePlate : one LicensePlate,
-    quality : one Quality,
     position : one Position,
     timeStamp : one TimeStamp,
     note : one Note,
     email : one Email,
     autheticatorID : one AuthenticatorID,
-    verified : one Int
-} {note.length <= 140 && note.length > 0}
+    verified : one Bool
+} {
+    
+}
 
 sig ViolationControl {
     reports : some Violation
@@ -180,4 +185,10 @@ fact noDuplicateViolationTypes {
         ((#v.violationType=3 and vt in v.violationType and vt' in v.violationType and vt'' in v.violationType) 
             => (vt != vt' and vt' != vt'' and vt != vt'')) or
         ((#v.violationType=2 and vt in v.violationType and vt' in v.violationType) => (vt != vt'))
+}
+
+fact reliabilityScoreInit {
+    all u, u': NormalUser | (u!=u' and u.authentication.authenticationType = SPIDAuthentication
+        and u'.authentication.authenticationType = ProprietaryAuthentication
+        and #u.reportsMade = 0 and #u'.reportsMade = 0) implies (u.reliabilityScore > u'.reliabilityScore)
 }
