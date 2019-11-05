@@ -12,8 +12,6 @@ sig FiscalCode{}
 
 sig City{}
 
-sig BirthLocation extends City{}
-
 sig Address{}
 
 sig PhoneNumber{}
@@ -30,7 +28,9 @@ sig Note{
     length : one Int
 }
 
-sig Image{}
+sig Image {
+    status : one Int
+}
 
 sig Date{ 
     day : one Int,
@@ -62,7 +62,7 @@ sig NormalUser extends User {
     reliabilityScore : one Int,
     date : one Date,
     fiscalCode : one FiscalCode,
-    birthLocation : one BirthLocation,
+    birthLocation : one City,
     phoneNumber : one PhoneNumber,
     city : one City,
     address : one Address
@@ -81,15 +81,10 @@ sig Violation {
     timeStamp : one TimeStamp,
     note : one Note,
     autheticatorID : one AuthenticatorID
-} {#violationType <= 3 && #violationType >= 1 && note.length <= 140 && note.length > 0}
-
-sig Report {
-    violation : one Violation,
-    status : one Int
-}
+} {#Violation.violationType <= 3 && #Violation.violationType >= 1 && note.length <= 140 && note.length > 0}
 
 sig ViolationControl {
-    reports : some Report
+    reports : some Violation
 }
 
 sig Map{}
@@ -98,13 +93,25 @@ sig ViolationVisualizer {
     map : one Map
 }
 
-sig ViolationVisualizerLimited extends ViolationVisualizer {}
+abstract sig ViolationLimited {
+    violationType : some ViolationType,
+    position : one Position,
+    timeStamp : one TimeStamp
+}
+
+sig ViolationVisualizerLimited extends ViolationVisualizer {
+    violationLimited : some ViolationLimited
+}
+
+sig ViolationVisualizerPro extends ViolationVisualizer {
+    violations : some Violation
+}
 
 sig Data{}
 
 sig MunicipalityData {
     data : some Data
-} {#data > 1}
+} {#data >= 1}
 
 sig SuggestionInferred {
     municipalityData : one MunicipalityData
