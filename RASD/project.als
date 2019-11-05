@@ -1,3 +1,7 @@
+abstract sig Quality{}
+sig MODIFIED extends Quality{}
+sig NONMODIFIED extends Quality{}
+
 sig Username{}
 
 sig Password{}
@@ -57,9 +61,7 @@ sig Authorization {
 }
 
 abstract sig AuthentiaticationType {}
-
 sig SPIDAuthentication extends AuthentiaticationType {}
-
 sig ProprietaryAuthentication extends AuthentiaticationType {}
 
 sig Authentication {
@@ -84,6 +86,7 @@ sig NormalUser extends User {
     phoneNumber : one PhoneNumber,
     city : one City,
     address : one Address,
+    email: one Email
 }
 
 sig Authority extends User {
@@ -92,17 +95,17 @@ sig Authority extends User {
 }
 
 sig Violation {
-    violationType : seq ViolationType,
+    violationType : some ViolationType,
     image : one Image,
     licensePlate : one LicensePlate,
-    quality : one Int,
+    quality : one Quality,
     position : one Position,
     timeStamp : one TimeStamp,
     note : one Note,
     email : one Email,
     autheticatorID : one AuthenticatorID,
     verified : one Int
-} {#Violation.violationType <= 3 && #Violation.violationType >= 1 && note.length <= 140 && note.length > 0}
+} {note.length <= 140 && note.length > 0}
 
 sig ViolationControl {
     reports : some Violation
@@ -142,6 +145,10 @@ sig SuggestionInferralEngine {
     suggestions : some SuggestionInferred
 }
 
+fact violationTypeLimit {
+	no v: Violation | #v.violationType > 3
+}
+
 fact noDuplicateUser {
     no u1, u2 : User | u1.autheticatorID = u2.autheticatorID
 }
@@ -163,10 +170,14 @@ fact noDuplicateDigitalCertificateX509 {
 fact noDuplicateViolationsFromAnUser {
     all v1, v2 : Violation | v1.autheticatorID = v2.autheticatorID
     implies {
-        v1.timeStamp.milliseconds - v2.timeStamp.milliseconds < 1000000 => v1.licensePlate != v2.licensePlate
+        v1.licensePlate != v2.licensePlate => v1.timeStamp.milliseconds - v2.timeStamp.milliseconds < 1200000 
+        and v1.position != v2.position
     }
 }
 
 fact noDuplicateViolationTypes {
-    no v : Violation | v.violationType.hasDups
+    all vt, vt', vt'' : ViolationType, v: Violation | 
+        ((#v.violationType=3 and vt in v.violationType and vt' in v.violationType and vt'' in v.violationType) 
+            => (vt != vt' and vt' != vt'' and vt != vt'')) or
+        ((#v.violationType=2 and vt in v.violationType and vt' in v.violationType) => (vt != vt'))
 }
