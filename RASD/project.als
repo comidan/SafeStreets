@@ -26,7 +26,9 @@ sig LicensePlate{}
 
 sig Position{}
 
-sig Note{}
+sig Note{
+    length : one Int
+}
 
 sig Image{}
 
@@ -79,4 +81,35 @@ sig Violation {
     timeStamp : one TimeStamp,
     note : one Note,
     autheticatorID : one AuthenticatorID
-} {#violationType <= 3 && # violationType >= 1}
+} {#violationType <= 3 && #violationType >= 1 && note.length <= 140 && note.length > 0}
+
+sig Report {
+    violation : one Violation,
+    status : one Int
+}
+
+sig ViolationControl {
+    reports : some Report
+}
+
+sig Map{}
+
+sig ViolationVisualizer {
+    map : one Map
+}
+
+sig ViolationVisualizerLimited extends ViolationVisualizer {}
+
+sig Data{}
+
+sig MunicipalityData {
+    data : some Data
+} {#data > 1}
+
+sig SuggestionInferred {
+    municipalityData : one MunicipalityData
+}
+
+sig SuggestionInferralEngine {
+    suggestions : some SuggestionInferred
+}
