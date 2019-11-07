@@ -14,7 +14,9 @@ sig AuthenticatorID{}
 
 sig FiscalCode{}
 
-sig City{}
+sig City{
+    position : one Position
+}
 
 sig Address{}
 
@@ -27,19 +29,23 @@ sig Email{}
 sig CertifiedEmail extends Email{}
 
 sig DigitalCertificateX509{
-    creationDate : one TimeStamp,
-    dateOfExpiry : one TimeStamp,
+    creationDate : one Date,
+    dateOfExpiry : one Date,
     id : one ID
-} {creationDate.milliseconds < dateOfExpiry.milliseconds}
+} {creationDate!=dateOfExpiry}
 
 sig ViolationType{}
 
-sig LicensePlate{
+sig LicensePlateRecognizer{
     prefixLength: one Int,
     middleLength: one Int,
     suffixLength: one Int,
-    modified : one Bool
 }{prefixLength=2 and middleLength=3 and suffixLength=2}
+
+sig LicensePlate{
+    licensePlateRecognizer : one LicensePlateRecognizer,
+    modified : one Bool
+}
 
 sig Position{}
 
@@ -48,22 +54,10 @@ sig Note{
 }{length =< 140 && length > 0}
 
 sig Image {
-    modified : one Bool
+    accepted : one Bool
 }
 
-sig Date{ 
-    day : one Int,
-    month : one Int,
-    year : one Int
-}{day > 0 and month > 0 and year > 0}
-
-sig TimeStamp extends Date {
-    milliseconds : one Int
-}{milliseconds>0}
-
-sig Authorization {
-    digitalCertificateX509 : one DigitalCertificateX509
-}
+sig Date{}
 
 abstract sig AuthentiaticationType {}
 sig SPIDAuthentication extends AuthentiaticationType {}
@@ -80,7 +74,8 @@ abstract sig User {
     surname : one Surname,
     autheticatorID : one AuthenticatorID,
     authentication : one Authentication,
-    reportsMade : set Violation
+    reportsMade : set Violation,
+    email : one Email
 }
 
 sig NormalUser extends User {
@@ -90,109 +85,107 @@ sig NormalUser extends User {
     birthLocation : one City,
     phoneNumber : one PhoneNumber,
     city : one City,
-    address : one Address,
-    email: one Email
+    address : one Address
 }
 
 sig Authority extends User {
-    authorization : one Authorization,
-    certifiedEmail : one CertifiedEmail,
+    authorization : one DigitalCertificateX509,
     notification: set Violation
 }
 
-sig Violation {
+sig VehicleType{}
+
+sig Violation{
+    violationID : one Int,
     violationType : some ViolationType,
+    position : one Position,
+    timeStamp : one Date,
+    vehicleType: one VehicleType,
     image : one Image,
     licensePlate : one LicensePlate,
-    position : one Position,
-    timeStamp : one TimeStamp,
     note : one Note,
     email : one Email,
     autheticatorID : one AuthenticatorID,
     verified : one Bool
-}{#this.violationType =< 3}
-
-sig ViolationControl {
-    reports : some Violation
-}
+}{#violationType =< 3}
 
 sig Map{}
 
-sig ViolationVisualizer {
-    map : one Map
+abstract sig ViolationVisualizer{
+    map : one Map,
+    violation : some Violation
 }
-
-abstract sig ViolationLimited {
-    violationType : some ViolationType,
-    position : one Position,
-    timeStamp : one TimeStamp
-}
-
-sig ViolationVisualizerLimited extends ViolationVisualizer {
-    violationLimited : some ViolationLimited
-}
-
-sig ViolationVisualizerPro extends ViolationVisualizer {
-    violations : some Violation
-}
+sig ViolationVisualizerLimited extends ViolationVisualizer{}
+sig ViolationVisualizerPro extends ViolationVisualizer{}
 
 sig Data{}
 
 sig MunicipalityData {
-    data : some Data
+    incidents : some Data
 }
 
-sig SuggestionInferred {
+--represents Municiplality_i
+sig Municipality {
+    city : one City,
     municipalityData : one MunicipalityData
 }
 
+sig SuggestionsType {}
+
 sig SuggestionInferralEngine {
-    suggestions : some SuggestionInferred
+    suggestions : some SuggestionsType,
+    municipalities : set Municipality
 }
 
 fact noDuplicateUser {
-    no u1, u2 : User | u1! = u2 and u1.autheticatorID = u2.autheticatorID
-}
-
-fact noDuplicateAuthenticatorID{
-    no u1, u2 : User | u1 = u2 and u1.autheticatorID != u2.autheticatorID
+    all u1, u2 : User | u1 = u2 iff u1.autheticatorID = u2.autheticatorID
 }
 
 fact noDuplicateUsername{
-    no u1, u2: User | u1.autheticatorID = u2.autheticatorID
-        and u1.authentication.username != u2.authentication.username
+    all u1, u2: User | u1.autheticatorID = u2.autheticatorID
+        iff u1.authentication.username = u2.authentication.username
 }
 
 fact noDuplicatePassword{
-    no u1, u2: User | u1.authorization.username = u2.authorization.username
-        and u1.authorization.password != u2.authorization.password
+    all u1, u2: User | u1.authentication.username = u2.authentication.username
+        iff u1.authentication.password = u2.authentication.password
 }
 
 fact noDuplicatePerson {
-    all u1, u2 : NormalUser | u1.autheticatorID != u2.autheticatorID
-        implies (u1.fiscalCode != u2.fiscalCode and u1.email != u2.email
-            and u1.phoneNumber != u2.phoneNumber)
+    all u1, u2 : User | u1.autheticatorID != u2.autheticatorID
+        implies (u1.fiscalCode != u2.fiscalCode and u1.email != u2.email)
 }
 
-fact noDuplicateAuthority {
-    all a1, a2 : Authority | a1.autheticatorID != a2.autheticatorID
-    implies a1.certifiedEmail != a2.certifiedEmail
+fact noDuplicatePhoneNumber{
+    no u1, u2 : NormalUser | u1=u2 and u1.phoneNumber != u2.phoneNumber
+}
+
+fact emailAuthority {
+    all u: User | u = Authority iff u.email = CertifiedEmail
+}
+
+fact noDuplicateAuthorization{
+    no a1, a2 : Authorization | a1=a2 and a1.digitalCertificateX509 != a2.digitalCertificateX509
 }
 
 fact noDuplicateDigitalCertificateX509 {
     no c1, c2 : DigitalCertificateX509 | c1!=c2 and c1.id = c2.id
 }
 
+fact authorityUniqueCertificate{
+    no a1, a2: Authority | a1=a2 and a1.authorization!=a2.authorization
+}
+
 fact noDuplicateViolationsFromAnUser {
-    all v1, v2 : Violation | v1.autheticatorID = v2.autheticatorID
-    implies {
-        v1.licensePlate != v2.licensePlate => v1.timeStamp.milliseconds - v2.timeStamp.milliseconds < 1200000 
+    all v1, v2 : ViolationLimited | v1.autheticatorID = v2.autheticatorID
+    implies (
+        (v1.licensePlate != v2.licensePlate => (v1.timeStamp.milliseconds - v2.timeStamp.milliseconds < 1200000)) 
         and v1.position != v2.position
-    }
+    )
 }
 
 fact noDuplicateViolationTypes {
-    all vt, vt', vt'' : ViolationType, v: Violation | 
+    all vt, vt', vt'' : ViolationType, v: ViolationLimited | 
         ((#v.violationType=3 and vt in v.violationType and vt' in v.violationType and vt'' in v.violationType) 
             implies (vt != vt' and vt' != vt'' and vt != vt'')) or
         ((#v.violationType=2 and vt in v.violationType and vt' in v.violationType) => (vt != vt'))
@@ -206,7 +199,26 @@ fact reliabilityScoreInit {
 
 --notification
 fact notificationFromUserToAuthority{
-    all u: NormalUser | #u.reportsMade>0 implies
-        (some a : Authority | u.reportsMade in a.notification)
+    all u: User | #u.reportsMade>0 iff (some a : Authority | let r = u.reportsMade | r in a.notification)
 }
 
+fact violationNotifier{
+    all v: Violation, u : User | (v in u.reportsMade) implies (v.email = u.email)
+}
+
+fact statisticsVisualization{
+    all u : User, v : ViolationVisualizer | (u = Authority and v.violationLimited = Violation)
+        or u = NormalUser
+}
+
+fact statistics{
+    all v : ViolationVisualizer | #v.violationLimited>0 iff (some u : User | #u.reportsMade>0)
+}
+
+fact suggestionsPossibile{
+    all s : SuggestionInferralEngine | #s.suggestions>0 iff (some u : User | #u.reportsMade>0 and #s.suggestions.municipalityData>0)
+}
+
+fact providedDataFromMunicipality {
+    all s: SuggestionInferred | #s.municipalityData>0 iff #s.municipalityData.data>0
+}
