@@ -26,7 +26,7 @@ sig ID{}
 
 sig Email{}
 
-sig CertifiedEmail extends Email{}
+sig CertifiedEmail{}
 
 sig DigitalCertificateX509{
     creationDate : one Date,
@@ -59,12 +59,12 @@ sig Image {
 
 sig Date{}
 
-abstract sig AuthentiaticationType {}
-sig SPIDAuthentication extends AuthentiaticationType {}
-sig ProprietaryAuthentication extends AuthentiaticationType {}
+abstract sig AuthenticationType {}
+sig SPIDAuthentication extends AuthenticationType {}
+sig ProprietaryAuthentication extends AuthenticationType {}
 
 sig Authentication {
-    authenticationType : one AuthentiaticationType,
+    authenticationType : one AuthenticationType,
     username : one Username,
     password : one Password
 }
@@ -75,9 +75,8 @@ abstract sig User {
     autheticatorID : one AuthenticatorID,
     authentication : one Authentication,
     reportsMade : set Violation,
-    city : one City,
-    email : one Email
-}
+    city : one City
+}{#authentication.authenticationType=1 or #authentication.authenticationType=2}
 
 sig NormalUser extends User {
     reliabilityScore : one Int,
@@ -85,13 +84,15 @@ sig NormalUser extends User {
     fiscalCode : one FiscalCode,
     birthLocation : one City,
     phoneNumber : one PhoneNumber,
-    address : one Address
-}
+    address : one Address,
+    email : one Email
+}{reliabilityScore>=0}
 
 sig Authority extends User {
     authorization : one DigitalCertificateX509,
     notification : set Violation,
-    suggestions : set SuggestionsType
+    suggestions : set SuggestionsType,
+    email : one CertifiedEmail
 }
 
 sig VehicleType{}
@@ -138,32 +139,41 @@ sig SuggestionInferralEngine {
     municipalities : set Municipality
 }
 
-fact noDuplicatePassword{
-    all u1, u2: User | u1.email = u2.email
-        iff (u1.authentication.username = u2.authentication.username and u1.authentication.password = u2.authentication.password)
+fact noDuplicatePasswordNormalUser{
+    all u1, u2: NormalUser | (u1.authentication.username = u2.authentication.username and u1.authentication.password = u2.authentication.password) implies u1 = u2
 }
 
-fact noDuplicatePerson {
-    all u1, u2 : User | u1 = u2
-        iff (u1.autheticatorID = u2.autheticatorID or u1.fiscalCode = u2.fiscalCode  or u1.email = u2.email
-             or u1.authentication = u2.authentication or u1.phoneNumber = u2.phoneNumber)
+fact noDuplicateNormalUser {
+    all u1, u2 : NormalUser | (u1.autheticatorID = u2.autheticatorID or u1.fiscalCode = u2.fiscalCode  or u1.email = u2.email
+             or u1.authentication = u2.authentication or u1.phoneNumber = u2.phoneNumber) implies u1 = u2
 }
 
-fact emailAuthority {
-    no u: User | u != Authority and u.email = CertifiedEmail
+fact noDuplicatePasswordAuthority{
+    all u1, u2: Authority | (u1.authentication.username = u2.authentication.username) implies u1 = u2
 }
 
-fact emailNormalUser {
-	no u : User | u = NormalUser and u.email = CertifiedEmail
+fact noDuplicateAuthority {
+    all u1, u2 : Authority | u1 = u2
+        iff (u1.autheticatorID = u2.autheticatorID  or u1.email = u2.email or u1.authentication = u2.authentication)
 }
 
 fact noDuplicateAuthorization{
-    all a1, a2 : Authority | a1 = a2 implies a1.authorization = a2.authorization
+    all a1, a2 : Authority | a1.authorization = a2.authorization implies a1 = a2
 }
 
-fact noDuplicateDigitalCertificateX509 {
-    all c1, c2 : DigitalCertificateX509 | c1 = c2 iff c1.id = c2.id
+fact cityPosition{
+	all c1, c2 : City | c1 = c2 iff c1.position = c2.position
+	--all c : City | some u : User | c in u.city
 }
+
+fact noDuplicateDigitalCertificateX509{
+	all a1, a2: Authority | a1.authorization.id = a2.authorization.id implies a1.authorization = a2.authorization
+	some a : Authority | all c : DigitalCertificateX509 | c = a.authorization
+	all c1, c2 : DigitalCertificateX509 | c1 = c2 iff c1.id = c2.id
+}
+
+--Up is done
+--down to debug
 
 fact noDuplicateViolationsFromUser {
     all v1, v2 : Violation | v1.violationID = v2.violationID iff
