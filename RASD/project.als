@@ -250,7 +250,7 @@ fact statistics{
 }
 
 --this following facts are needed to garantuee a working suggestion inferring system
-fact MunicipalityDataManagement{
+fact municipalityDataManagement{
     all s : SuggestionInferralEngine | #s.suggestions>0 implies (#s.municipalities>0 and (some v : Violation | #v>0))
     all s : SuggestionInferralEngine | all m : Municipality | m in s.municipalities and #m.incidents>0
        and (all m' : Municipality  | ( m.city = m'.city or m.incidents = m'.incidents) iff m = m')
@@ -261,7 +261,7 @@ fact suggestionsActivation{
     all s : SuggestionInferralEngine, v : Violation | #s.suggestions>0 implies (#s.municipalities>0 and #v>0)
 }
 
-fact MunicipalityDataProvided{
+fact municipalityDataProvided{
     all s : SuggestionInferralEngine | (#s.municipalities>0 and (some u : User | #u.reportsMade>0)) 
     implies (some a : Authority | s.suggestions in a.suggestions)
 }
