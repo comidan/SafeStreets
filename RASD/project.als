@@ -3,7 +3,6 @@ abstract sig Bool{}
 sig True extends Bool{}
 sig False extends Bool{}
 
-
 --image of a violation signature
 sig Image {
     accepted : one Bool
@@ -140,7 +139,6 @@ sig SuggestionInferralEngine {
     violations : some Violation
 }
 
-
 --no duplicate username is possible so that a certain username is associated with a specific user
 fact noDuplicateUsernameNormalUser{
     all u1, u2: NormalUser | (u1.authentication.username = u2.authentication.username) implies u1 = u2
@@ -163,40 +161,40 @@ fact noDuplicateAuthority {
         iff (u1.autheticatorID = u2.autheticatorID  or u1.email = u2.email or u1.authentication = u2.authentication)
 }
 
---needed to garantuee there not exist any kind of equivalent authorization among different user of every kind
+--needed to guarantee there not exist any kind of equivalent authorization among different user of every kind
 fact noDuplicateAuthorization{
     all a1, a2 : Authority | a1.authorization = a2.authorization implies a1 = a2
 }
 
 --for obvious, natural reasons, a city has its own position which is not shared along any other different cities
 fact cityPosition{
-	all c1, c2 : City | c1.position = c2.position implies c1 = c2
-	all u : User  | some c : City | c = u.city
+    all c1, c2 : City | c1.position = c2.position implies c1 = c2
+    all u : User  | some c : City | c = u.city
 }
 
 --digital certificates X509 cannot have any kind of duplicates to be valid and to respect security measures and constraints
 fact noDuplicateDigitalCertificateX509{
-	all a1, a2: Authority | a1.authorization.id = a2.authorization.id implies a1.authorization = a2.authorization
-	all a : Authority | some c : DigitalCertificateX509 | c = a.authorization
-	all c1, c2 : DigitalCertificateX509 | c1 = c2 iff c1.id = c2.id
+    all a1, a2: Authority | a1.authorization.id = a2.authorization.id implies a1.authorization = a2.authorization
+    all a : Authority | some c : DigitalCertificateX509 | c = a.authorization
+    all c1, c2 : DigitalCertificateX509 | c1 = c2 iff c1.id = c2.id
 }
 
---needed to garantuee a quite important requirement which is that no user can report multiple times the same violation
+--needed to guarantee a quite important requirement which is that no user can report multiple times the same violation
 fact noDuplicateViolationsFromUser {
     all v1, v2 : Violation | 
     (v1.timeStamp = v2.timeStamp or v1.email = v2.email or v1.autheticatorID = v2.autheticatorID)
-	implies v1.violationID = v2.violationID
-	all u : User | some v : Violation | v in u.reportsMade
-	all v1, v2 : Violation | v1 = v2 iff v1.violationID = v2.violationID
-	all u1, u2 : User | no v : Violation | u1 != u2 and v in u1.reportsMade and v in u2.reportsMade
+    implies v1.violationID = v2.violationID
+    all u : User | some v : Violation | v in u.reportsMade
+    all v1, v2 : Violation | v1 = v2 iff v1.violationID = v2.violationID
+    all u1, u2 : User | no v : Violation | u1 != u2 and v in u1.reportsMade and v in u2.reportsMade
 }
 
 fact noDuplicateViolationsPerUser{
-	all u : NormalUser | some v : Violation | v in u.reportsMade implies (v.email = u.email
-		and (some a : Authority | v in a.notification))
+    all u : NormalUser | some v : Violation | v in u.reportsMade implies (v.email = u.email
+        and (some a : Authority | v in a.notification))
 }
 
---this fact garantuees that there are no violations where one of them have a violation type list containing violation type duplicates
+--this fact guarantees that there are no violations where one of them have a violation type list containing violation type duplicates
 fact noDuplicateViolationTypes {
     all vt, vt', vt'' : ViolationType, v: Violation | 
         ((#v.violationType=3 and vt in v.violationType and vt' in v.violationType and vt'' in v.violationType) 
@@ -204,7 +202,7 @@ fact noDuplicateViolationTypes {
         ((#v.violationType=2 and vt in v.violationType and vt' in v.violationType) implies (vt != vt'))
 }
 
---this garantuees a better reliability score for users logging in with the SPID authentication system
+--this guarantees a better reliability score for users logging in with the SPID authentication system
 fact reliabilityScoreInit {
     all u, u' : User | (u!=u' and u.authentication.authenticationType = SPIDAuthentication
         and u'.authentication.authenticationType = ProprietaryAuthentication
@@ -216,7 +214,7 @@ fact verificationManagement{
     all v : Violation | v.verified = False iff v.verified != True
 }
 
---this garantuees the possibility of an authority to increase a certain violation reporting user reliability score in case of
+--this guarantees the possibility of an authority to increase a certain violation reporting user reliability score in case of
 --his violation was verified by this authority
 fact reliabilityScoreManagement {
     all u, u' : User | u = u' and (some x : Int | x > 0 and (u'.reliabilityScore = u.reliabilityScore + x)) iff
@@ -233,7 +231,7 @@ fact violationNotifier{
     all u : User | some v : Violation | v.email = u.email implies v in u.reportsMade
 }
 
---needed to garantuee the autonomous notification system based on authorities current positions
+--needed to guarantee the autonomous notification system based on authorities current positions
 fact notifyWhomManagement{
     all u : User, a : Authority | let r = u.reportsMade | r in a.notification iff (r.position = a.city.position)
 }
@@ -249,12 +247,12 @@ fact statistics{
     all v : ViolationVisualizer | #v.violation>0 iff (some u : User | #u.reportsMade>0)
 }
 
---this following facts are needed to garantuee a working suggestion inferring system
+--this following facts are needed to guarantee a working suggestion inferring system
 fact municipalityDataManagement{
     all s : SuggestionInferralEngine | #s.suggestions>0 implies (#s.municipalities>0 and (some v : Violation | #v>0))
     all s : SuggestionInferralEngine | all m : Municipality | m in s.municipalities and #m.incidents>0
        and (all m' : Municipality  | ( m.city = m'.city or m.incidents = m'.incidents) iff m = m')
-	all m1, m2 : Municipality | m1.city = m2.city implies m1 = m2
+    all m1, m2 : Municipality | m1.city = m2.city implies m1 = m2
 }
 
 fact suggestionsActivation{
@@ -268,32 +266,30 @@ fact municipalityDataProvided{
 
 --world regarding SafeStreets accesed by registred authorities and users
 pred Registration {
-	#NormalUser = 1
-	#Authority = 1
+    #NormalUser = 1
+    #Authority = 1
 }
 
 run Registration for 3 but 0 SuggestionsType, 0 MunicipalityData
 
-
 --world regarding the visualization of the violations map with the different levels of visibility depedning on the user type
 pred VisualizerMap {
-	#ViolationVisualizerLimited = 1
-	#ViolationVisualizerPro = 1
+    #ViolationVisualizerLimited = 1
+    #ViolationVisualizerPro = 1
 }
 
 run VisualizerMap for 2 but 0 SuggestionsType, 0 MunicipalityData
 
 --world regarding the new suggestions inferred by SafeStreets by using municipality data
 pred Suggestions{
-	#SuggestionInferralEngine = 1
-	#Municipality = 2
+    #SuggestionInferralEngine = 1
+    #Municipality = 2
 }
 run Suggestions for 3
 
-
---really important assert to garantuee authority access to his various assigned special SafeStreets functionalities
+--really important assert to guarantee authority access to his various assigned special SafeStreets functionalities
 assert AuthorityRecognition {
-	no a : Authority | no c : DigitalCertificateX509 | a.authorization.id = c.id
+    no a : Authority | no c : DigitalCertificateX509 | a.authorization.id = c.id
 }
 check AuthorityRecognition
 
